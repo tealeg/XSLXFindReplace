@@ -70,8 +70,15 @@ function find_and_replace () {
     echo "[Done]"
 }
 
+function clean_tmp () {
+    echo -n "Cleaning up tmp ... "
+    rm -rf $TMPDIR
+    echo "[DONE]"
+}
+
 make_tmp
 decompress_file
 find_and_replace
 backup_original
 compress_files
+clean_tmp
