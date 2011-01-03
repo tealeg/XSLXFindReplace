@@ -1,0 +1,11 @@
+XLSXFindReplace
+
+A simple (v. quick and dirty) bash script to find an replace strings in Microsoft Excel Spreadsheets stored in the XSLX format. Generally much quicker than opening the files in an Office suite to achieve this aim.
+
+Requires bash and perl.
+
+You call it as:
+
+  xlsxfindreplace <FIND> <REPLACE> <FILENAME>
+
+You can put anything in the FIND and REPLACE that could fit into a standard perl regex of the form "s/<FIND>/<REPLACE>/g".  The script will make a backup version of your XLSX file with the extension .bak next to the original.

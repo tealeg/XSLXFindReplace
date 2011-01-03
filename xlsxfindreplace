@@ -1,0 +1,77 @@
+#! /bin/bash
+# -*- mode: sh-mode -*-
+
+THIS=$(readlink -f $0)
+SCRIPTDIR=$(dirname $THIS)
+SCRIPTNAME=$0
+
+FIND=$1
+REPLACE=$2
+SOURCE_FILE=$(readlink -f $3)
+BACKUP_FILE=${SOURCE_FILE}.bak
+
+
+function make_tmp () { 
+    echo -n "Making TMP dir ..."
+    TMPDIR=$(mktemp -d /tmp/$(basename $SOURCE_FILE).XXXXXXXXXX)
+    if [ $? != 0 ]; then
+        echo "[ERROR]"
+        echo "problem creating tmpdir"
+        exit 1
+    fi
+    echo "DONE"
+}
+
+function decompress_file () {
+    echo -n "Decompressing XLSX file ..."
+    cd $TMPDIR 1>/dev/null 2>/dev/null
+    unzip $SOURCE_FILE 1>/dev/null 2>/dev/null
+    if [ $? != 0 ]; then
+        echo "[ERROR]"
+        echo "problem decompressing XLSX file"
+        exit 2
+    fi
+    cd - 1>/dev/null 2>/dev/null
+    echo "[DONE]"
+}
+
+function backup_original () {
+    echo -n "Backing up original ... "
+    mv $SOURCE_FILE $BACKUP_FILE
+    if [ $? != 0 ]; then
+        echo "[ERROR]"
+        echo "problem backing up XLSX file"
+        exit 3
+    fi
+    echo "[Done]"
+}
+
+function compress_files () {
+    echo -n "Compressing XLSX file ..."
+    cd $(dirname $SOURCE_FILE) 1>/dev/null 2>/dev/null
+    zip -r $SOURCE_FILE $TMPDIR/\[Content_Types\].xml $TMPDIR/docProps/ $TMPDIR/_rels $TMPDIR/xl 1>/dev/null 2>/dev/null
+    if [ $? != 0 ]; then
+        echo "[ERROR]"
+        echo "problem compressing XLSX file"
+        exit 4
+    fi
+    echo "[Done]"
+    cd - 1>/dev/null 2>/dev/null
+}
+
+function find_and_replace () {
+    echo -n "Replacing ${FIND} with ${REPLACE} ... "
+    perl -p -i -e "s/${FIND}/${REPLACE}/g" $TMPDIR/xl/sharedStrings.xml
+    if [ $? != 0 ]; then
+        echo "[ERROR]"
+        echo "problem finding and replacing in file"
+        exit 5
+    fi
+    echo "[Done]"
+}
+
+make_tmp
+decompress_file
+find_and_replace
+backup_original
+compress_files
