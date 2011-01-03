@@ -10,21 +10,22 @@ REPLACE=$2
 SOURCE_FILE=$(readlink -f $3)
 BACKUP_FILE=${SOURCE_FILE}.bak
 
+WORK_DIR=$(readlink -f $(basename $SOURCE_FILE .xlsx))
 
-function make_tmp () { 
-    echo -n "Making TMP dir ..."
-    TMPDIR=$(mktemp -d /tmp/$(basename $SOURCE_FILE).XXXXXXXXXX)
+function make_work () { 
+    echo -n "Making WORK dir ..."
+    mkdir -p $WORK_DIR
     if [ $? != 0 ]; then
         echo "[ERROR]"
-        echo "problem creating tmpdir"
+        echo "problem creating workdir"
         exit 1
     fi
     echo "DONE"
 }
 
 function decompress_file () {
-    echo -n "Decompressing XLSX file ..."
-    cd $TMPDIR 1>/dev/null 2>/dev/null
+    echo -n "Decompressing XLSX file in ${WORK_DIR} ..."
+    cd $WORK_DIR 1>/dev/null 2>/dev/null
     unzip $SOURCE_FILE 1>/dev/null 2>/dev/null
     if [ $? != 0 ]; then
         echo "[ERROR]"
@@ -48,8 +49,8 @@ function backup_original () {
 
 function compress_files () {
     echo -n "Compressing XLSX file ..."
-    cd $(dirname $SOURCE_FILE) 1>/dev/null 2>/dev/null
-    zip -r $SOURCE_FILE $TMPDIR/\[Content_Types\].xml $TMPDIR/docProps/ $TMPDIR/_rels $TMPDIR/xl 1>/dev/null 2>/dev/null
+    cd $WORK_DIR 1>/dev/null 2>/dev/null
+    zip -r $SOURCE_FILE \[Content_Types\].xml docProps _rels xl 1>/dev/null 2>/dev/null
     if [ $? != 0 ]; then
         echo "[ERROR]"
         echo "problem compressing XLSX file"
@@ -61,7 +62,7 @@ function compress_files () {
 
 function find_and_replace () {
     echo -n "Replacing ${FIND} with ${REPLACE} ... "
-    perl -p -i -e "s/${FIND}/${REPLACE}/g" $TMPDIR/xl/sharedStrings.xml
+    perl -p -i -e "s/${FIND}/${REPLACE}/g" $WORK_DIR/xl/sharedStrings.xml
     if [ $? != 0 ]; then
         echo "[ERROR]"
         echo "problem finding and replacing in file"
@@ -70,15 +71,15 @@ function find_and_replace () {
     echo "[Done]"
 }
 
-function clean_tmp () {
-    echo -n "Cleaning up tmp ... "
-    rm -rf $TMPDIR
+function clean_work () {
+    echo -n "Cleaning up work ... "
+    rm -rf $WORK_DIR
     echo "[DONE]"
 }
 
-make_tmp
+make_work
 decompress_file
 find_and_replace
 backup_original
 compress_files
-clean_tmp
+clean_work
